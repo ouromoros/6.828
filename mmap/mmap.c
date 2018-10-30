@@ -35,16 +35,17 @@ calculate_sqrts(double *sqrt_pos, int start, int nr)
 static void
 handle_sigsegv(int sig, siginfo_t *si, void *ctx)
 {
-  static uintptr_t mapped_page = NULL;
+  static uintptr_t mapped_page = 0;
 
-  if(mapped_page != NULL) {
-    munmap(mapped_page, page_size);
+
+  if(mapped_page != 0) {
+    munmap((void*)mapped_page, page_size);
   }
   uintptr_t fault_addr = (uintptr_t)si->si_addr;
   uintptr_t fpage_start = align_down(fault_addr, page_size);
-  mmap(fpage_start, page_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+  mmap((void*)fpage_start, page_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   double *sqrt_start = (double *) fpage_start;
-  calculate_sqrts(sqrt_start, (sqrt_start - sqrts)/sizeof(double *), page_size/sizeof(double*));
+  calculate_sqrts(sqrt_start, sqrt_start - sqrts, page_size/sizeof(double*));
 
   mapped_page = fpage_start;
 }
